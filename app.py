@@ -59,7 +59,9 @@ def generate_review_reply(model, review_text, star_rating, tone, length):
 - 同じ語尾（〜ます。〜ます。〜ます。）を3回以上連続させないこと
 - 実際の店舗スタッフが書いたような生っぽい文体にすること
 - 口コミの具体的な内容に触れて、テンプレート感を消すこと
-- 個人名（お客様名・スタッフ名）は絶対に書かないこと。「スタッフ」「担当者」などの一般名称を使うこと
+- 個人名の扱いルール：
+  - 高評価（星4〜5）の場合：口コミに個人名が書かれていれば、その名前をそのまま使ってよい（例：「古山医師にご満足いただきありがとうございます」）
+  - 低評価（星1〜3）の場合：個人名は絶対に書かないこと。「担当医」「担当スタッフ」「担当者」などの一般名称に置き換えること（例：「担当医にご満足いただけず申し訳ありません」）
 - 指定されたトーンに合わせた3パターンの返信案を作成してください
 - 各パターンは異なる切り口・表現で書き分けること（トーンは統一）
 - 返信文の中では2〜3文ごとに必ず空行（改行2つ）を入れて段落を分けること。改行なしのベタ書きは禁止
@@ -137,15 +139,25 @@ def main():
     if "auto_star" not in st.session_state:
         st.session_state.auto_star = 3
 
+    # テキストエリアの初期値管理
+    if "review_text" not in st.session_state:
+        st.session_state.review_text = ""
+
     review_text = st.text_area(
         "口コミをコピペ",
         height=150,
         placeholder="ここに口コミを貼り付けてください（例：接客が良かった、料理が遅かった等）",
+        value=st.session_state.review_text,
         key="review_input"
     )
 
-    # 星評価の自動判定ボタン
-    col_auto, _ = st.columns([1, 3])
+    # 消去ボタン・自動判定ボタン
+    col_clear, col_auto, _ = st.columns([1, 1, 2])
+    with col_clear:
+        if st.button("🗑️ クリア"):
+            st.session_state.review_text = ""
+            st.session_state.auto_star = 3
+            st.rerun()
     with col_auto:
         if st.button("⚡ 星を自動判定"):
             if review_text:
