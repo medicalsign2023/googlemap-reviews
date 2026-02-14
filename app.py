@@ -36,7 +36,7 @@ def estimate_star_rating(model, review_text):
 # 返信生成ロジック
 # ---------------------------------------------------------------------------
 def generate_review_reply(model, review_text, star_rating, tone, length):
-    if length == "短め（2〜3文）":
+    if length == "短め":
         length_instruction = "各返信は2〜3文程度の短くコンパクトな文章にしてください。"
     else:
         length_instruction = "各返信は5〜8文程度のしっかりとした丁寧な文章にしてください。"
@@ -208,7 +208,7 @@ def main():
         with col2:
             tone = st.selectbox("返信のトーン", ["丁寧・誠実", "フレンドリー", "おわび重視"])
         with col3:
-            length = st.selectbox("返信の長さ", ["短め（2〜3文）", "長め（5〜8文）"])
+            length = st.selectbox("返信の文字数", ["短め", "長め"])
 
         submitted = st.form_submit_button("✏️ 返信を作成する")
 
