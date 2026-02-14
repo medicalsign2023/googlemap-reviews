@@ -67,7 +67,7 @@ def generate_review_reply(model, review_text, star_rating, tone, length):
 # UI メイン
 # ---------------------------------------------------------------------------
 def main():
-    st.set_page_config(page_title="Googleマップ 口コミ返信AI", page_icon="💬")
+    st.set_page_config(page_title="Googleマップ 口コミ返信AI", page_icon="�")
     
     st.title("💬 Googleマップ 口コミ返信生成AI")
     st.write("お客様からの口コミを入力すると、AIが最適な返信文を3パターン提案します。")
@@ -76,7 +76,7 @@ def main():
 
     # 入力エリア
     with st.form("review_form"):
-        review_text = st.text_area("お客様の口コミ内容", height=150, placeholder="例：料理は美味しかったけど、提供が遅かったです。")
+        review_text = st.text_area("口コミをコピペ", height=150, placeholder="例：料理は美味しかったけど、提供が遅かったです。")
         col1, col2, col3 = st.columns(3)
         with col1:
             star_rating = st.slider("評価（星の数）", 1, 5, 3)
@@ -85,7 +85,7 @@ def main():
         with col3:
             length = st.selectbox("返信の長さ", ["短め（2〜3文）", "長め（5〜8文）"])
         
-        submitted = st.form_submit_button("🚀 返信を作成する")
+        submitted = st.form_submit_button("✏️ 返信を作成する")
 
     # 結果表示
     if submitted and review_text:
