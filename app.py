@@ -50,13 +50,13 @@ def generate_review_reply(model, review_text, star_rating, tone, length):
 【出力形式】
 以下の形式で出力してください：
 
-### パターンA
+### A案（共感型）
 (返信文)
 
-### パターンB
+### B案（行動型）
 (返信文)
 
-### パターンC
+### C案（シンプル）
 (返信文)
 """
     try:
@@ -83,7 +83,7 @@ def main():
         with col1:
             star_rating = st.slider("評価（星の数）", 1, 5, 3)
         with col2:
-            tone = st.selectbox("返信のトーン", ["丁寧・誠実", "フレンドリー・親しみやすい", "謝罪重視（低評価時推奨）"])
+            tone = st.selectbox("返信のトーン", ["丁寧・誠実", "フレンドリー", "おわび重視"])
         with col3:
             length = st.selectbox("返信の長さ", ["短め（2〜3文）", "長め（5〜8文）"])
         
