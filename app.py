@@ -61,7 +61,7 @@ def generate_review_reply(model, review_text, star_rating, tone, length):
 - 口コミの具体的な内容に触れて、テンプレート感を消すこと
 - 【絶対厳守】個人名の扱いルール：
   - 評価が星4〜5の場合のみ：口コミに個人名が書かれていれば、その名前をそのまま使ってよい
-  - 評価が星1〜3の場合：口コミに個人名が含まれていても、返信文には絶対に個人名を書いてはいけない。必ず「担当医」「担当スタッフ」「担当者」などの一般名称に100%置き換えること。これは最優先ルールである
+  - 評価が星1〜3の場合：口コミに個人名が含まれていても、返信文には絶対に個人名を書いてはいけない。必ず「担当医」「スタッフ」「担当者」などの一般名称に100%置き換えること。これは最優先ルールである
 - 指定されたトーンに合わせた3パターンの返信案を作成してください
 - 各パターンは異なる切り口・表現で書き分けること（トーンは統一）
 - 返信文の中では2〜3文ごとに必ず空行（改行2つ）を入れて段落を分けること。改行なしのベタ書きは禁止
@@ -75,7 +75,7 @@ def generate_review_reply(model, review_text, star_rating, tone, length):
 ### B案（行動型）
 (返信文)
 
-### C案（シンプル）
+### C案（シンプル型）
 (返信文)
 """
     try:
@@ -96,6 +96,7 @@ def remove_personal_names(reply, review_text, model):
     prompt = f"""以下の口コミに含まれる人名（医師名、スタッフ名、個人名）をすべて抽出してください。
 人名がない場合は「なし」と回答してください。
 人名だけをカンマ区切りで出力し、他の文字は一切出力しないでください。
+敬称（先生、医師、ドクター、さん等）は含めず、名前部分だけを出力してください。
 
 口コミ: {review_text}"""
     try:
@@ -104,8 +105,13 @@ def remove_personal_names(reply, review_text, model):
         if names_text == "なし" or not names_text:
             return reply
         names = [n.strip() for n in names_text.split(",") if n.strip()]
+        # 敬称付きのパターンを先に置換（「古山先生」→「担当医」）
+        suffixes = ["先生", "医師", "ドクター", "Dr.", "dr."]
         for name in names:
-            reply = reply.replace(name, "担当スタッフ")
+            for suffix in suffixes:
+                reply = reply.replace(name + suffix, "担当医")
+            # 敬称なしの名前単体も置換
+            reply = reply.replace(name, "担当医")
         return reply
     except Exception:
         return reply
