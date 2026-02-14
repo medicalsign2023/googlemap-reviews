@@ -59,9 +59,9 @@ def generate_review_reply(model, review_text, star_rating, tone, length):
 - 同じ語尾（〜ます。〜ます。〜ます。）を3回以上連続させないこと
 - 実際の店舗スタッフが書いたような生っぽい文体にすること
 - 口コミの具体的な内容に触れて、テンプレート感を消すこと
-- 個人名の扱いルール：
-  - 高評価（星4〜5）の場合：口コミに個人名が書かれていれば、その名前をそのまま使ってよい（例：「古山医師にご満足いただきありがとうございます」）
-  - 低評価（星1〜3）の場合：個人名は絶対に書かないこと。「担当医」「担当スタッフ」「担当者」などの一般名称に置き換えること（例：「担当医にご満足いただけず申し訳ありません」）
+- 【絶対厳守】個人名の扱いルール：
+  - 評価が星4〜5の場合のみ：口コミに個人名が書かれていれば、その名前をそのまま使ってよい
+  - 評価が星1〜3の場合：口コミに個人名が含まれていても、返信文には絶対に個人名を書いてはいけない。必ず「担当医」「担当スタッフ」「担当者」などの一般名称に100%置き換えること。これは最優先ルールである
 - 指定されたトーンに合わせた3パターンの返信案を作成してください
 - 各パターンは異なる切り口・表現で書き分けること（トーンは統一）
 - 返信文の中では2〜3文ごとに必ず空行（改行2つ）を入れて段落を分けること。改行なしのベタ書きは禁止
@@ -80,9 +80,35 @@ def generate_review_reply(model, review_text, star_rating, tone, length):
 """
     try:
         response = model.generate_content(prompt)
-        return response.text
+        reply = response.text
+        # 低評価時：口コミに含まれる個人名を返信文から除去する後処理
+        if star_rating <= 3:
+            reply = remove_personal_names(reply, review_text, model)
+        return reply
     except Exception as e:
         return f"エラーが発生しました: {e}"
+
+# ---------------------------------------------------------------------------
+# 低評価時の個人名除去（後処理）
+# ---------------------------------------------------------------------------
+def remove_personal_names(reply, review_text, model):
+    """AIに個人名を検出させ、返信文から除去する"""
+    prompt = f"""以下の口コミに含まれる人名（医師名、スタッフ名、個人名）をすべて抽出してください。
+人名がない場合は「なし」と回答してください。
+人名だけをカンマ区切りで出力し、他の文字は一切出力しないでください。
+
+口コミ: {review_text}"""
+    try:
+        response = model.generate_content(prompt)
+        names_text = response.text.strip()
+        if names_text == "なし" or not names_text:
+            return reply
+        names = [n.strip() for n in names_text.split(",") if n.strip()]
+        for name in names:
+            reply = reply.replace(name, "担当スタッフ")
+        return reply
+    except Exception:
+        return reply
 
 # ---------------------------------------------------------------------------
 # 返信テキストを案ごとに分割
@@ -130,7 +156,7 @@ def display_with_copy_button(title, text, key):
 def main():
     st.set_page_config(page_title="Googleマップ 口コミ返信AI", page_icon="📍")
 
-    st.title("� Googleマップ 口コミ返信生成AI")
+    st.title("\U0001f4cd Googleマップ 口コミ返信生成AI")
     st.write("お客様からの口コミを入力すると、AIが最適な返信文を3パターン提案します。")
 
     model = load_config()
