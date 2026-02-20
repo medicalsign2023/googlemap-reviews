@@ -208,6 +208,37 @@ def save_daily_usage(count):
 def main():
     st.set_page_config(page_title="Googleマップ 口コミ返信AI", page_icon="📍")
 
+    # フォーム送信ボタンのカスタムCSS（中央配置 & 目立つ色）
+    st.markdown("""
+    <style>
+    /* フォーム送信ボタンを中央に配置し、目立たせる */
+    div[data-testid="stForm"] .stFormSubmitButton {
+        display: flex;
+        justify-content: center;
+    }
+    div[data-testid="stForm"] .stFormSubmitButton > button {
+        background: linear-gradient(135deg, #ff6b35, #f7c948);
+        color: white !important;
+        font-size: 1.2rem !important;
+        font-weight: bold !important;
+        padding: 0.7rem 3rem !important;
+        border: none !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+        transition: all 0.3s ease;
+        min-width: 280px;
+    }
+    div[data-testid="stForm"] .stFormSubmitButton > button:hover {
+        background: linear-gradient(135deg, #e55a2b, #e6b830);
+        box-shadow: 0 6px 20px rgba(255, 107, 53, 0.6);
+        transform: translateY(-2px);
+    }
+    div[data-testid="stForm"] .stFormSubmitButton > button:active {
+        transform: translateY(0);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.title("\U0001f4cd Googleマップ 口コミ返信生成AI")
     st.write("お客様からの口コミを入力すると、AIが最適な返信文を3パターン提案します。")
 
