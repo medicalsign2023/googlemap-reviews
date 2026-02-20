@@ -1,9 +1,17 @@
 
 import os
 import re
+import json
+from datetime import datetime
 import streamlit as st
 import google.generativeai as genai
 from dotenv import load_dotenv
+from streamlit_js_eval import streamlit_js_eval
+
+# ---------------------------------------------------------------------------
+# 定数
+# ---------------------------------------------------------------------------
+MAX_DAILY_USES = 5
 
 # ---------------------------------------------------------------------------
 # 設定
@@ -157,34 +165,42 @@ def display_with_copy_button(title, text, key):
     st.markdown("---")
 
 # ---------------------------------------------------------------------------
-# パスワード認証
+# 1日の利用回数制限（localStorage使用）
 # ---------------------------------------------------------------------------
-def check_password():
-    """パスワード認証を行い、認証済みかどうかを返す"""
-    load_dotenv()
-    correct_password = os.getenv("APP_PASSWORD", "")
+def get_daily_usage():
+    """ブラウザのlocalStorageから今日の利用回数を取得"""
+    today = datetime.now().strftime("%Y-%m-%d")
+    js_code = f"""
+    (function() {{
+        try {{
+            var stored = localStorage.getItem('gmap_review_usage');
+            var data = stored ? JSON.parse(stored) : null;
+            if (!data || data.date !== '{today}') {{
+                return 0;
+            }}
+            return data.count || 0;
+        }} catch(e) {{
+            return 0;
+        }}
+    }})()
+    """
+    count = streamlit_js_eval(js_expressions=js_code, key="daily_usage_reader")
+    if count is not None:
+        st.session_state["_daily_usage_count"] = int(count)
+    return st.session_state.get("_daily_usage_count", 0)
 
-    if not correct_password:
-        return True
-
-    if st.session_state.get("authenticated"):
-        return True
-
-    # 中央寄せレイアウト
-    st.markdown("<div style='height: 20vh'></div>", unsafe_allow_html=True)
-    _, center, _ = st.columns([1, 1.5, 1])
-    with center:
-        st.markdown("<h2 style='text-align:center'>🔐 ログイン</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center;color:#888'>パスワードを入力してください</p>", unsafe_allow_html=True)
-        password = st.text_input("パスワード", type="password", key="password_input", label_visibility="collapsed")
-        if st.button("ログイン", use_container_width=True):
-            if password == correct_password:
-                st.session_state["authenticated"] = True
-                st.rerun()
-            else:
-                st.error("❌ パスワードが正しくありません。")
-
-    return False
+def save_daily_usage(count):
+    """利用回数をlocalStorageに保存"""
+    today = datetime.now().strftime("%Y-%m-%d")
+    st.session_state["_daily_usage_count"] = count
+    st.components.v1.html(f"""
+    <script>
+    localStorage.setItem('gmap_review_usage', JSON.stringify({{
+        "date": "{today}",
+        "count": {count}
+    }}));
+    </script>
+    """, height=0)
 
 # ---------------------------------------------------------------------------
 # UI メイン
@@ -192,12 +208,16 @@ def check_password():
 def main():
     st.set_page_config(page_title="Googleマップ 口コミ返信AI", page_icon="📍")
 
-    # パスワード認証
-    if not check_password():
-        return
-
     st.title("\U0001f4cd Googleマップ 口コミ返信生成AI")
     st.write("お客様からの口コミを入力すると、AIが最適な返信文を3パターン提案します。")
+
+    # 利用回数の表示
+    usage_count = get_daily_usage()
+    remaining = MAX_DAILY_USES - usage_count
+    if remaining > 0:
+        st.info(f"📊 本日の残り利用回数: **{remaining} / {MAX_DAILY_USES}回**")
+    else:
+        st.error(f"⚠️ 本日の利用上限（{MAX_DAILY_USES}回）に達しました。明日またご利用ください。")
 
     model = load_config()
 
@@ -245,20 +265,30 @@ def main():
 
     # 結果表示
     if submitted and review_text:
-        with st.spinner("AIが返信を考えています..."):
-            reply = generate_review_reply(model, review_text, star_rating, tone, length)
+        # 利用回数チェック
+        current_usage = st.session_state.get("_daily_usage_count", 0)
+        if current_usage >= MAX_DAILY_USES:
+            st.error(f"⚠️ 本日の利用上限（{MAX_DAILY_USES}回）に達しました。明日またご利用ください。")
+        else:
+            with st.spinner("AIが返信を考えています..."):
+                reply = generate_review_reply(model, review_text, star_rating, tone, length)
 
-            st.markdown("---")
-            st.subheader("📝 生成された返信案")
+                # 利用回数を更新
+                new_count = current_usage + 1
+                save_daily_usage(new_count)
 
-            # 案ごとに分割して個別コピーボタン付きで表示
-            sections = parse_reply_sections(reply)
-            if sections:
-                for i, (title, body) in enumerate(sections):
-                    display_with_copy_button(title, body, i)
-            else:
-                # パースできない場合はそのまま表示
-                st.markdown(reply)
+                st.markdown("---")
+                st.subheader("📝 生成された返信案")
+                st.success(f"✅ 本日 {new_count}/{MAX_DAILY_USES} 回目の利用")
+
+                # 案ごとに分割して個別コピーボタン付きで表示
+                sections = parse_reply_sections(reply)
+                if sections:
+                    for i, (title, body) in enumerate(sections):
+                        display_with_copy_button(title, body, i)
+                else:
+                    # パースできない場合はそのまま表示
+                    st.markdown(reply)
 
     elif submitted:
         st.warning("⚠️ 口コミ内容を入力してください。")
