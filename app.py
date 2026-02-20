@@ -157,10 +157,44 @@ def display_with_copy_button(title, text, key):
     st.markdown("---")
 
 # ---------------------------------------------------------------------------
+# パスワード認証
+# ---------------------------------------------------------------------------
+def check_password():
+    """パスワード認証を行い、認証済みかどうかを返す"""
+    load_dotenv()
+    correct_password = os.getenv("APP_PASSWORD", "")
+
+    if not correct_password:
+        return True
+
+    if st.session_state.get("authenticated"):
+        return True
+
+    # 中央寄せレイアウト
+    st.markdown("<div style='height: 20vh'></div>", unsafe_allow_html=True)
+    _, center, _ = st.columns([1, 1.5, 1])
+    with center:
+        st.markdown("<h2 style='text-align:center'>🔐 ログイン</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;color:#888'>パスワードを入力してください</p>", unsafe_allow_html=True)
+        password = st.text_input("パスワード", type="password", key="password_input", label_visibility="collapsed")
+        if st.button("ログイン", use_container_width=True):
+            if password == correct_password:
+                st.session_state["authenticated"] = True
+                st.rerun()
+            else:
+                st.error("❌ パスワードが正しくありません。")
+
+    return False
+
+# ---------------------------------------------------------------------------
 # UI メイン
 # ---------------------------------------------------------------------------
 def main():
     st.set_page_config(page_title="Googleマップ 口コミ返信AI", page_icon="📍")
+
+    # パスワード認証
+    if not check_password():
+        return
 
     st.title("\U0001f4cd Googleマップ 口コミ返信生成AI")
     st.write("お客様からの口コミを入力すると、AIが最適な返信文を3パターン提案します。")
@@ -171,25 +205,22 @@ def main():
     if "auto_star" not in st.session_state:
         st.session_state.auto_star = 3
 
-    # テキストエリアの初期値管理
-    if "review_text" not in st.session_state:
-        st.session_state.review_text = ""
+    # クリアボタンのコールバック
+    def clear_input():
+        st.session_state.review_input = ""
+        st.session_state.auto_star = 3
 
     review_text = st.text_area(
         "口コミをコピペ",
         height=150,
         placeholder="ここに口コミを貼り付けてください（例：接客が良かった、料理が遅かった等）",
-        value=st.session_state.review_text,
         key="review_input"
     )
 
     # 消去ボタン・自動判定ボタン
     col_clear, col_auto, _ = st.columns([1, 1, 2])
     with col_clear:
-        if st.button("🗑️ クリア"):
-            st.session_state.review_text = ""
-            st.session_state.auto_star = 3
-            st.rerun()
+        st.button("🗑️ クリア", on_click=clear_input)
     with col_auto:
         if st.button("⚡ 星を自動判定"):
             if review_text:
