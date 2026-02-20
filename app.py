@@ -165,11 +165,17 @@ def display_with_copy_button(title, text, key):
     st.markdown("---")
 
 # ---------------------------------------------------------------------------
-# 1日の利用回数制限（localStorage使用）
+# 1日の利用回数制限（session_state + localStorage）
 # ---------------------------------------------------------------------------
 def get_daily_usage():
-    """ブラウザのlocalStorageから今日の利用回数を取得"""
+    """session_stateから今日の利用回数を取得（初回のみlocalStorageから復元）"""
     today = datetime.now().strftime("%Y-%m-%d")
+
+    # session_state に日付付きカウントがあればそれを使う（最も信頼できるソース）
+    if "_daily_usage_date" in st.session_state and st.session_state["_daily_usage_date"] == today:
+        return st.session_state.get("_daily_usage_count", 0)
+
+    # 初回アクセス時: localStorage から復元を試みる
     js_code = f"""
     (function() {{
         try {{
@@ -184,23 +190,40 @@ def get_daily_usage():
         }}
     }})()
     """
-    count = streamlit_js_eval(js_expressions=js_code, key="daily_usage_reader")
+    # key にタイムスタンプを含めて毎セッション確実に実行
+    read_key = f"daily_usage_reader_{st.session_state.get('_reader_seq', 0)}"
+    count = streamlit_js_eval(js_expressions=js_code, key=read_key)
     if count is not None:
         st.session_state["_daily_usage_count"] = int(count)
+        st.session_state["_daily_usage_date"] = today
+        return int(count)
+
+    # JS がまだ返っていない場合（初回レンダリング）
     return st.session_state.get("_daily_usage_count", 0)
 
 def save_daily_usage(count):
-    """利用回数をlocalStorageに保存"""
+    """利用回数をsession_stateとlocalStorageに保存"""
     today = datetime.now().strftime("%Y-%m-%d")
     st.session_state["_daily_usage_count"] = count
-    st.components.v1.html(f"""
-    <script>
-    localStorage.setItem('gmap_review_usage', JSON.stringify({{
-        "date": "{today}",
-        "count": {count}
-    }}));
-    </script>
-    """, height=0)
+    st.session_state["_daily_usage_date"] = today
+    # writer の key をインクリメントして毎回実行されるようにする
+    seq = st.session_state.get("_writer_seq", 0) + 1
+    st.session_state["_writer_seq"] = seq
+    write_key = f"daily_usage_writer_{seq}"
+    js_save = f"""
+    (function() {{
+        try {{
+            localStorage.setItem('gmap_review_usage', JSON.stringify({{
+                "date": "{today}",
+                "count": {count}
+            }}));
+            return {count};
+        }} catch(e) {{
+            return -1;
+        }}
+    }})()
+    """
+    streamlit_js_eval(js_expressions=js_save, key=write_key)
 
 # ---------------------------------------------------------------------------
 # UI メイン
