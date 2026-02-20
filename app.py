@@ -212,12 +212,19 @@ def main():
     st.markdown("""
     <style>
     /* フォーム送信ボタンを中央に配置し、目立たせる */
-    div[data-testid="stForm"] .stFormSubmitButton {
-        display: flex;
-        justify-content: center;
+    div[data-testid="stForm"] [data-testid="stFormSubmitButton"],
+    div[data-testid="stForm"] .stFormSubmitButton,
+    div[data-testid="stForm"] div:has(> button[kind="formSubmit"]) {
+        display: flex !important;
+        justify-content: center !important;
+        text-align: center !important;
+        width: 100% !important;
     }
-    div[data-testid="stForm"] .stFormSubmitButton > button {
-        background: linear-gradient(135deg, #ff6b35, #f7c948);
+    div[data-testid="stForm"] [data-testid="stFormSubmitButton"] > button,
+    div[data-testid="stForm"] .stFormSubmitButton > button,
+    div[data-testid="stForm"] button[kind="formSubmit"],
+    div[data-testid="stForm"] .stButton > button {
+        background: linear-gradient(135deg, #ff6b35, #f7c948) !important;
         color: white !important;
         font-size: 1.2rem !important;
         font-weight: bold !important;
@@ -227,13 +234,19 @@ def main():
         box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
         transition: all 0.3s ease;
         min-width: 280px;
+        margin: 0 auto !important;
+        display: block !important;
     }
-    div[data-testid="stForm"] .stFormSubmitButton > button:hover {
-        background: linear-gradient(135deg, #e55a2b, #e6b830);
+    div[data-testid="stForm"] [data-testid="stFormSubmitButton"] > button:hover,
+    div[data-testid="stForm"] .stFormSubmitButton > button:hover,
+    div[data-testid="stForm"] button[kind="formSubmit"]:hover {
+        background: linear-gradient(135deg, #e55a2b, #e6b830) !important;
         box-shadow: 0 6px 20px rgba(255, 107, 53, 0.6);
         transform: translateY(-2px);
     }
-    div[data-testid="stForm"] .stFormSubmitButton > button:active {
+    div[data-testid="stForm"] [data-testid="stFormSubmitButton"] > button:active,
+    div[data-testid="stForm"] .stFormSubmitButton > button:active,
+    div[data-testid="stForm"] button[kind="formSubmit"]:active {
         transform: translateY(0);
     }
     </style>
